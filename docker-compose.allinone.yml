@@ -1,0 +1,38 @@
+# 同堂 Tongtang · 一体化单容器部署（前端+后端同一镜像，无需 Nginx）
+# 使用：docker compose -f docker-compose.allinone.yml up -d
+# 然后打开 http://主机IP:8080 按首次配置向导连接 Home Assistant
+name: tongtang
+
+services:
+  tongtang:
+    image: jeesa/tongtang:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8000"          # 改左边可换访问端口
+    environment:
+      DATA_DIR: /data
+      # 会话签名密钥（必改）：填你自己的随机字符串（openssl rand -hex 32 生成）。
+      # 留空也能启动，但每次重启会生成一次性密钥、全员需重新登录。
+      APP_SECRET: ""
+      INITIAL_ADMIN_PASSWORD: "admin123"   # 首次初始化的管理员密码，登录后请立即修改
+      TZ: "Asia/Shanghai"
+      # HA 跑在本机时可直接填 http://host.docker.internal:8123；留空则走网页首次配置向导
+      HA_URL: ""
+      HA_TOKEN: ""
+      # 数据目录属主自动修正后以此身份运行（默认 10001）；
+      # 想在宿主机上直接读写数据文件，改成你的用户 id（id -u / id -g）
+      # PUID: "1000"
+      # PGID: "1000"
+    volumes:
+      # 换成宿主机目录也可以（如 /srv/tongtang/data:/data），
+      # 容器启动时会自动修正目录属主，无需手动 chown
+      - tongtang_data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  default:
+    enable_ipv6: false   # 规避 IPv6 半通导致的间歇性无响应
+
+volumes:
+  tongtang_data:

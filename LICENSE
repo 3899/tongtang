@@ -1,0 +1,29 @@
+版权所有 © 2026 同堂 Tongtang 项目作者。保留所有权利。
+Copyright © 2026 The Tongtang Project Author. All Rights Reserved.
+
+本软件及其源代码、文档与相关资源（以下统称"本项目"）不属于开源软件。
+
+未经版权持有人事先书面许可，任何个人或组织不得：
+1. 使用本项目的全部或部分代码用于任何生产、商业或非商业用途；
+2. 复制、修改、合并、翻译或创建本项目的衍生作品；
+3. 分发、再许可、出售、出租或以其他方式向第三方提供本项目；
+4. 移除或修改本项目中的版权声明。
+
+允许的行为：
+- 通过 GitHub 平台浏览本仓库内容；
+- 依 GitHub 服务条款在平台内进行 fork（该行为不构成任何使用许可）；
+- 按本仓库文档部署与使用官方发布的 Docker 镜像（jeesa/tongtang、
+  jeesa/tongtang-web、jeesa/tongtang-api）用于个人及家庭用途。
+
+本项目按"现状"提供，不附带任何明示或暗示的担保。
+如需获得其他使用授权，请联系仓库所有者。
+
+This project is source-available for viewing on GitHub only and is NOT
+open source. No rights are granted to use, copy, modify, or distribute
+this software, in whole or in part, without prior written permission
+from the copyright holder. Forking within GitHub as permitted by the
+GitHub Terms of Service does not constitute a license to use. Running
+the officially published Docker images (jeesa/tongtang, jeesa/tongtang-web,
+jeesa/tongtang-api) for personal, in-home use as documented is permitted.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
