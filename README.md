@@ -37,6 +37,32 @@ docker compose up -d
 
 镜像仓库：[`jeesa/tongtang`](https://hub.docker.com/r/jeesa/tongtang)（一体化） · [`jeesa/tongtang-web`](https://hub.docker.com/r/jeesa/tongtang-web) + [`jeesa/tongtang-api`](https://hub.docker.com/r/jeesa/tongtang-api)（双容器）
 
+## 界面预览
+
+> 以下截图来自真实家庭环境（约 700 实体规模）。
+
+| 首页 · iOS 26 液态玻璃 | 首页 · 金门 Golden Gate |
+|---|---|
+| ![首页 iOS 26 玻璃](screenshots/home-glass.png) | ![首页 金门](screenshots/home-gold.png) |
+
+| 庭院 · 新中式 | 夜航 · 仪表舱（暗色） |
+|---|---|
+| ![庭院新中式](screenshots/home-court.png) | ![夜航仪表舱](screenshots/home-nav-dark.png) |
+
+| 果冻 · 多彩 | 素墨 · 黑白 |
+|---|---|
+| ![果冻多彩](screenshots/home-pop.png) | ![素墨黑白](screenshots/home-mono.png) |
+
+| 能源账本（电/燃气/水 · 表计层级下钻） | 组合设备浮窗（插排端口功率） |
+|---|---|
+| ![能源页](screenshots/energy.png) | ![组合设备](screenshots/composite.png) |
+
+| 情景与自动化 | 管理后台 · 实体管理 |
+|---|---|
+| ![自动化](screenshots/automations.png) | ![管理后台](screenshots/admin-devices.png) |
+
+<p align="center"><img src="screenshots/mobile-home.png" width="320" alt="移动端首页"></p>
+
 ## 功能总览
 
 ### 控制体验（HomeKit 风格）
