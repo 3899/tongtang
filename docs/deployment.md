@@ -45,6 +45,7 @@ docker run -d --name tongtang --restart unless-stopped \
 | `HA_URL` / `HA_TOKEN` | 可选。设置后优先于界面配置（适合纯环境变量管理）；留空走网页首次配置向导 |
 | `TZ` | 时区，默认 `Asia/Shanghai` |
 | `PUID` / `PGID` | 可选。数据目录属主修正后以此身份运行（默认 10001）；设为你的 `id -u`/`id -g` 便于在宿主机直接读写数据文件 |
+| `SESSION_COOKIE_NAME` | 可选。会话 Cookie 名（默认 `qj_session`）。同一主机跑多套实例（不同端口）时各配一个，避免互相挤登出（浏览器 Cookie 不区分端口） |
 | `DATA_DIR` | 容器内数据目录，保持默认 `/data` 即可 |
 
 ### 数据目录
@@ -108,6 +109,10 @@ docker compose start api
 - [ ] 登录接口自带按 IP+账号限速（15 分钟 10 次失败锁定）
 
 ## 故障排查
+
+**症状：同一台主机跑两套实例（不同端口），登录一个另一个被挤下线**
+浏览器 Cookie 只按域名隔离、不区分端口，两套实例默认共用同名会话 Cookie 互相覆盖。
+给其中一套设置 `SESSION_COOKIE_NAME`（如 `tt_test_session`）即可共存。
 
 **症状：换成宿主机目录（bind mount）后 API 起不来**
 旧版镜像（< 1.1.1）对 root 属主的宿主目录无写权限。升级到最新镜像即可（启动时自动修正属主）；
