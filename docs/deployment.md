@@ -42,7 +42,7 @@ docker run -d --name tongtang --restart unless-stopped \
 |---|---|
 | `APP_SECRET` | **建议必填**，≥16 位随机串（`openssl rand -hex 32`）。会话签名密钥：留空每次重启生成一次性密钥（全员重新登录）；改动会使全员重新登录 |
 | `INITIAL_ADMIN_PASSWORD` | 首次建库时管理员初始密码（仅空库生效，默认 `admin123`） |
-| `HA_URL` / `HA_TOKEN` | 可选。设置后优先于界面配置（适合纯环境变量管理）；留空走网页首次配置向导 |
+| `HA_URL` / `HA_TOKEN` | 可选。设置后**优先于界面配置**（向导会显示"已由环境变量提供"）；留空走网页首次配置向导。修改后需 `docker compose up -d` 重建容器才生效；令牌失效时请更新此处而非向导 |
 | `TZ` | 时区，默认 `Asia/Shanghai` |
 | `PUID` / `PGID` | 可选。数据目录属主修正后以此身份运行（默认 10001）；设为你的 `id -u`/`id -g` 便于在宿主机直接读写数据文件 |
 | `SESSION_COOKIE_NAME` | 可选。会话 Cookie 名（默认 `qj_session`）。同一主机跑多套实例（不同端口）时各配一个，避免互相挤登出（浏览器 Cookie 不区分端口） |
