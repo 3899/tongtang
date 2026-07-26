@@ -19,6 +19,8 @@ services:
       # HA 跑在本机时可直接填 http://host.docker.internal:8123；留空则走网页首次配置向导
       HA_URL: ""
       HA_TOKEN: ""
+      # 原生 HomeKit 桥·方式 B（静态侧车）需要取消下一行注释；方式 A（自动编排）无需
+      # HOMEKIT_NATIVE: "1"
       # 数据目录属主自动修正后以此身份运行（默认 10001）；
       # 想在宿主机上直接读写数据文件，改成你的用户 id（id -u / id -g）
       # PUID: "1000"
@@ -27,8 +29,39 @@ services:
       # 换成宿主机目录也可以（如 /srv/tongtang/data:/data），
       # 容器启动时会自动修正目录属主，无需手动 chown
       - tongtang_data:/data
+      # ── 原生 HomeKit 桥 · 方式 A：自动编排（与下方方式 B 二选一，勿同时启用）──
+      # 取消下面一行注释即开通：成员第一次建桥时，同堂自动调用宿主机 Docker
+      # 创建 tongtang-hk 侧车容器（host 网络做 mDNS 广播、复用本镜像与数据卷），
+      # 桥全部删除后自动回收容器，镜像升级后下次启动自动重建侧车——除此行外零配置。
+      # ⚠ 安全提示：挂载 docker.sock 等同于把宿主机管理权限授予本容器。
+      # 在意的用户可改用 docker-socket-proxy 只放行 containers 类接口后挂代理地址，
+      # 或改用下方「方式 B」静态侧车（不碰 docker.sock），
+      # 或都保持注释、使用默认的 HA 桥模式（功能完整，只是按实体暴露配件）。
+      # - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  # ── 原生 HomeKit 桥 · 方式 B：compose 静态创建侧车（与方式 A 二选一）──
+  # 不愿挂 docker.sock 的用户用这种：取消整段注释（含上方环境变量里的
+  # HOMEKIT_NATIVE）后 `docker compose -f docker-compose.allinone.yml up -d`，
+  # 侧车长驻、不随桥增删回收。
+  # 原生桥能力（两种方式相同）：同一物理设备整机接入家庭 App——PDU 一块磁贴
+  # 展开各口、温湿度电量合一、多灯合并、电视遥控、门铃通知、情景/脚本按钮，
+  # 且家庭 App 里的操作经同堂权限校验并记入审计。
+  # host 网络为 mDNS 广播硬需求：NAS/Linux 可用，Docker Desktop 不支持。
+  # hk:
+  #   image: jeesa/tongtang:latest
+  #   container_name: tongtang-hk
+  #   restart: unless-stopped
+  #   network_mode: host
+  #   environment:
+  #     DATA_DIR: /data
+  #     APP_SECRET: ""            # 与主服务的 APP_SECRET 保持一致
+  #     TZ: "Asia/Shanghai"
+  #     HK_PORT_BASE: "52100"     # HAP 服务端口起点（每座桥占一个端口）
+  #   volumes:
+  #     - tongtang_data:/data     # 必须与主服务共用同一数据卷
+  #   command: python -m app.hap.daemon
 
 networks:
   default:
