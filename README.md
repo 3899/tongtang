@@ -41,6 +41,10 @@ docker compose up -d
 
 > **安全提示**：方式 A 挂载 docker.sock 等同于把宿主机管理权限授予容器，请自行评估信任边界；可经 [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy) 转发并只放行 containers 相关接口收紧，或直接选方式 B（完全不碰 docker.sock）。都不启用则维持默认的 HA 桥模式（功能完整，只是按实体暴露配件）。Docker Desktop（Windows/macOS）不支持 host 网络，请使用默认模式。
 
+> **配对排障**：宿主机装有 WireGuard/Tailscale 等虚拟网卡或多网卡时，mDNS 可能通告错误 IP（表现为配对最后一步失败、已添加配件一直"未连接"）——设置 `HK_ADDRESS` 为 NAS 局域网 IP 即可（方式 A 设在 api 环境变量并自动透传，方式 B 设在 hk 服务，见 compose 注释）。桥端口被其他进程占用时会自动迁移到空闲端口，配对不受影响。iPhone 与服务器需同一网段（mDNS 不跨网段，跨段需路由器开 mDNS 反射）。
+
+> **Zigbee2MQTT 用户注意**：① Z2M 的无线按钮/遥控器默认**不生成实体**——需在 Z2M 配置里开启 `homeassistant: experimental_event_entities: true` 后才能在同堂里勾选为 HomeKit 按钮；② Z2M 的智能插座官方不带 `device_class: outlet`，同堂会按名称（含"插座/plug"等）自动识别为插座形态，名字不含关键词的可在同堂"显示为"里手选，或在 Z2M 里 per-device 覆写 device_class。
+
 打开 `http://服务器IP:8080`，按首次配置向导填入 HA 地址与长期访问令牌即可。
 详细部署、升级、备份、HTTPS 与故障排查见 [docs/deployment.md](docs/deployment.md)。
 

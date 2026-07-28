@@ -28,6 +28,9 @@ services:
       HA_TOKEN: ""
       # 原生 HomeKit 桥·方式 B（静态侧车）需要取消下一行注释；方式 A（自动编排）无需
       # HOMEKIT_NATIVE: "1"
+      # 方式 A 的 mDNS 通告地址在此设置（自动透传给侧车）：宿主机装有 WireGuard/Tailscale
+      # 等虚拟网卡或多网卡时通告可能选错 IP（配对失败/配件"未连接"），填 NAS 局域网 IP
+      # HK_ADDRESS: "192.168.1.10"
       # 数据目录属主自动修正后以此身份运行（默认 10001）；
       # 想在宿主机上直接读写数据文件，改成你的用户 id（id -u / id -g）
       # PUID: "1000"
@@ -67,6 +70,9 @@ services:
   #     APP_SECRET: ""            # 与 api 的 APP_SECRET 保持一致
   #     TZ: "Asia/Shanghai"
   #     HK_PORT_BASE: "52100"     # HAP 服务端口起点（每座桥占一个端口）
+  #     # 宿主机装了 WireGuard/Tailscale 等虚拟网卡或多网卡时，mDNS 可能通告错误 IP
+  #     # （表现：配对最后一步失败 / 已添加的配件一直"未连接"），此时填 NAS 局域网 IP：
+  #     # HK_ADDRESS: "192.168.1.10"
   #   volumes:
   #     - tongtang_data:/data     # 必须与 api 共用同一数据卷
   #   command: python -m app.hap.daemon

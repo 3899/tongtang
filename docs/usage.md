@@ -137,7 +137,7 @@
 > **配件数量**：单桥约 150 配件上限（超限保存时会提示分桥）；可按房间/类型自建多座桥并命名，设备在桥间挪动会在家庭 App 中重建（保存前有确认）。
 > **实体拆分（HA 桥模式）**：HA homekit 集成按**实体**暴露配件——温湿度一体设备会显示为温度、湿度两个配件；设备电量自动并入配件属性，不单独出现。
 
-**原生桥模式（可选，推荐 NAS/Linux 部署）**：compose 中预置两种开通方式二选一——方式 A 取消 `docker.sock` 挂载行注释（自动编排侧车）、方式 B 取消 `hk` 服务整段注释 + `HOMEKIT_NATIVE: "1"`（compose 静态创建，不碰 docker.sock）。方式 A 为**零配置开通**——第一次建桥时同堂自动创建 tongtang-hk 侧车容器（host 网络、复用镜像与数据卷），全部桥删除后自动回收，镜像升级后自动重建侧车。能力：**同一物理设备整机一块磁贴**（PDU 插排展开各口、温湿度电量合一、多灯合并、新风→净化器卡片），热水器可接入，家庭 App 操作经同堂权限校验并记入审计。Docker Desktop（Windows/macOS）不支持 host 网络，请使用默认的 HA 桥模式；摄像头两种模式都建议走 HA 侧接入；docker.sock 等同宿主机管理权限，介意可用 docker-socket-proxy 收紧。
+**原生桥模式（可选，推荐 NAS/Linux 部署）**：compose 中预置两种开通方式二选一——方式 A 取消 `docker.sock` 挂载行注释（自动编排侧车）、方式 B 取消 `hk` 服务整段注释 + `HOMEKIT_NATIVE: "1"`（compose 静态创建，不碰 docker.sock）。方式 A 为**零配置开通**——第一次建桥时同堂自动创建 tongtang-hk 侧车容器（host 网络、复用镜像与数据卷），全部桥删除后自动回收，镜像升级后自动重建侧车。能力：**同一物理设备整机一块磁贴**（PDU 插排展开各口、温湿度电量合一、多灯合并、新风→净化器卡片；外层磁贴显示设备名，展开后的子控件显示各实体名），热水器可接入，家庭 App 操作经同堂权限校验并记入审计。Docker Desktop（Windows/macOS）不支持 host 网络，请使用默认的 HA 桥模式；摄像头两种模式都建议走 HA 侧接入；docker.sock 等同宿主机管理权限，介意可用 docker-socket-proxy 收紧。排障：配对最后一步失败或配件一直"未连接"，多为宿主机多网卡/虚拟网卡（WireGuard 等）导致 mDNS 通告错 IP——设置 `HK_ADDRESS` 为局域网 IP（方式 A 设在 api 环境变量自动透传，方式 B 设在 hk 服务）；桥端口被占会自动迁移空闲端口、配对无损；iPhone 需与服务器同网段（跨段需路由器开 mDNS 反射）。Zigbee2MQTT 用户：无线按钮需在 Z2M 配置开 `homeassistant: experimental_event_entities: true` 才有实体可勾；Z2M 插座不带 outlet 类，按名称自动识别，识别不到用"显示为"手选。
 
 ### 情景与自动化
 
