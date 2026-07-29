@@ -45,7 +45,7 @@ docker run -d --name tongtang --restart unless-stopped \
 | `HA_URL` / `HA_TOKEN` | 可选。设置后**优先于界面配置**（向导会显示"已由环境变量提供"）；留空走网页首次配置向导。修改后需 `docker compose up -d` 重建容器才生效；令牌失效时请更新此处而非向导 |
 | `TZ` | 时区，默认 `Asia/Shanghai` |
 | `PUID` / `PGID` | 可选。数据目录属主修正后以此身份运行（默认 10001）；设为你的 `id -u`/`id -g` 便于在宿主机直接读写数据文件 |
-| `SESSION_COOKIE_NAME` | 可选。会话 Cookie 名（默认 `qj_session`）。同一主机跑多套实例（不同端口）时各配一个，避免互相挤登出（浏览器 Cookie 不区分端口） |
+| `SESSION_COOKIE_NAME` | 可选。会话 Cookie 名（默认 `tongtang_session`，2.3.2 之前为 `qj_session`）。同一主机跑多套实例（不同端口）时各配一个，避免互相挤登出（浏览器 Cookie 不区分端口） |
 | `DATA_DIR` | 容器内数据目录，保持默认 `/data` 即可 |
 
 ### 数据目录
@@ -80,7 +80,7 @@ docker compose pull && docker compose up -d
 
 ```bash
 # 备份
-docker compose exec api sh -c "cd /data && tar cf - home-console.db*" > tongtang-backup-$(date +%F).tar
+docker compose exec api sh -c "cd /data && tar cf - *.db*" > tongtang-backup-$(date +%F).tar
 # （一体化部署把 api 换成 tongtang）
 
 # 恢复

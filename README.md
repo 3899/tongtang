@@ -45,6 +45,18 @@ docker compose up -d
 
 > **Zigbee2MQTT 用户注意**：① Z2M 的无线按钮/遥控器默认**不生成实体**——需在 Z2M 配置里开启 `homeassistant: experimental_event_entities: true` 后才能在同堂里勾选为 HomeKit 按钮；② Z2M 的智能插座官方不带 `device_class: outlet`，同堂会按名称（含"插座/plug"等）自动识别为插座形态，名字不含关键词的可在同堂"显示为"里手选，或在 Z2M 里 per-device 覆写 device_class。
 
+**可选 · Matter 桥（一座桥同享苹果家庭 / Google Home / Alexa，NAS/Linux 部署）**
+
+与原生 HomeKit 桥平行的第三种互联方式：每位成员自建 Matter 桥，凭 multi-admin 把同一座桥
+同时配对给多个语音生态；iPhone 本机扫码即添加，无需 HomePod 中枢做桥接、无需 HA 的 Matter Server。
+两份 compose 里同样预置两种开通方式（注释开关，二选一）：
+
+- **方式 A · 自动编排**：api 环境变量取消 `MT_IMAGE` 注释并挂载 docker.sock（与 HomeKit 方式 A 共用同一行挂载）——成员建桥时自动创建 `tongtang-mt` 侧车（host 网络广播 `_matterc._udp`），桥删光自动回收，镜像标签更新后自动重建
+- **方式 B · 静态侧车**：取消 `mt` 服务整段注释即可长驻，**api 端无需任何开关**（未设 MT_IMAGE 时同堂自动识别为常驻模式）
+
+> **Matter 注意事项**：配对排障同 HomeKit（mDNS 不跨网段；虚拟网卡场景见上）。开源软件桥使用
+> Matter 测试厂商码（0xFFF1），苹果家庭添加时会提示「未经认证的配件」，属预期行为，点继续即可。
+
 打开 `http://服务器IP:8080`，按首次配置向导填入 HA 地址与长期访问令牌即可。
 详细部署、升级、备份、HTTPS 与故障排查见 [docs/deployment.md](docs/deployment.md)。
 
@@ -106,7 +118,8 @@ docker compose up -d
 - **HomeKit · 专属桥（双模式）**：每位成员自建多座桥（按房间/类型命名组织），iPhone 家庭 App 扫码配对、Siri 直控；勾选与权限变化实时同步进家庭 App 且不破坏配对，权限收回自动消失
   - **HA 桥模式（默认，零依赖）**：托管 HA 内置 homekit 集成，按实体暴露配件，全平台可用
   - **原生桥模式（可选叠加，NAS/Linux 推荐）**：同堂自建 HAP 桥——**同一物理设备整机一块磁贴**（PDU 插排展开各口独立控制、温湿度电量合一、双模灯合并、新风→净化器卡片、热水器可接入），电视信源/遥控/音量、门铃与无线按钮原生通知、情景/脚本/自动化挂为一按即触发的开关，且家庭 App 里的每次操作经同堂权限校验并记入审计
-- 桥接均内置分步操作手册；小爱/涂鸦走 MQTT 长连接断线自愈、远端操作记入审计，HomeKit 为局域网直连（响应快、断网可用）
+- **Matter · 专属桥（multi-admin，可选叠加）**：一座桥同时共享给**苹果家庭 / Google Home / Alexa**，iPhone 扫码直加（无需 HomePod 桥接、无需 HA Matter Server）；灯（开关/调光/色温/彩色）、插座、窗帘（含百叶倾角）、门锁、空调、热水器、风扇/净化器、水阀、全系传感器（温湿度/照度/气压/门磁/人体/水浸）、空气质量（PM2.5/PM10/CO₂/CO/NO₂/O₃/VOC/AQI 分级）、烟雾/燃气报警、情景触发全类型接入，控制经同堂权限校验并记入审计，权限收回实时消失
+- 桥接均内置分步操作手册；小爱/涂鸦走 MQTT 长连接断线自愈、远端操作记入审计，HomeKit/Matter 为局域网直连（响应快、断网可用）
 
 ### 多家庭与权限
 - **家庭 = 设备集 + 成员集**：授权、能源统计以家庭为边界强制校验
@@ -143,6 +156,7 @@ docker compose up -d
 | [docs/usage.md](docs/usage.md) | 使用手册：管理员工作流 + 家庭成员日常操作 |
 | [docs/device-recognition.md](docs/device-recognition.md) | 设备识别规则：web 识别的设备形态对应 HA 的哪些参数，识别不对时如何在 HA 侧纠正 |
 | [CHANGELOG.md](CHANGELOG.md) | 版本更新日志 |
+| [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 第三方开源组件许可清单 |
 
 ## 支持的实体域
 
@@ -153,6 +167,14 @@ light · switch · climate · fan · cover · sensor · binary_sensor · camera 
 - 「谁在家」的 person 实体目前仅对接默认 HA 实例（情景/自动化已按家庭所属实例隔离）
 - 自动化引擎复用 HA 原生（Web 不自建执行引擎，跨 HA 联动在规划中）
 - 能源历史依赖 HA 长期统计：实体需带 `state_class` 属性（详见部署文档故障排查）
+
+## 支持项目
+
+同堂是免费的业余项目，打赏纯属自愿，**不解锁任何功能**。如果它对你的家庭有用，可以请作者喝杯咖啡：
+
+| 微信 | 支付宝 |
+|:---:|:---:|
+| <img src="docs/sponsor/wechat.png" alt="微信赞赏码" width="180"> | <img src="docs/sponsor/alipay.png" alt="支付宝收款码" width="180"> |
 
 ## 许可
 

@@ -1,5 +1,55 @@
 # 更新日志
 
+## 2.3.2 · 2026-07-29
+
+### 变更（旧名清理收尾）
+- **会话 Cookie 默认名 `qj_session` → `tongtang_session`**：初版名缩写的最后一个活跃残留。**升级后所有用户需重新登录一次**（旧名 Cookie 不再被读取，随 30 天有效期自然过期）；自定义过 `SESSION_COOKIE_NAME` 的部署不受影响
+- 名称清理收尾：package.json 包名 `ha-family-control` → `tongtang`（并补齐漏更的版本号）、测试临时目录前缀同步；NAS 侧已删除檐下时代的 `eaves-builder` 旧构建器、文件桥执行器在线改名 `tongtang-runner`。**尚余（择机与 dev 栈迁移一起做）**：`docker-compose.yml` 的 compose 项目名 `ha-family-control` 与数据卷名 `home_console_data`——改名=容器/网络/卷全部重建，存量自建部署会与老数据卷脱钩，须迁移方案配套
+
+## 2.3.1 · 2026-07-29
+
+### 变更（内部名称统一为「同堂」，无功能变化）
+- 项目初版名「栖居 / Home Console」在代码内部的全部残留清理：后端日志命名空间 `qiju.*` → `tongtang.*`（10 个模块）、PWA 离线缓存名更换（激活时自动清除旧缓存）、模块描述与样式注释同步；「檐下」经全库核查已无任何残留
+- **数据库文件名**：新部署改为 `data/tongtang.db`；存量部署升级后自动继续沿用原文件 `home-console.db`——无需迁移、无任何影响。特意不做启动时改名：api 与 HomeKit 侧车并发启动，SQLite 还有 `-wal`/`-shm` 伴生文件，跨进程原子改名无法保证，文件名统一的收益远小于竞态风险。备份命令文档同步改为通配 `*.db*`，两种文件名都覆盖
+- 复查补遗：清掉「檐下」的英文名残留——发行部署文档里已失效的 `EAVES_IMAGE_NS` 指令、裸机 systemd 模板描述；会话 Cookie 默认名 `qj_session`（栖居缩写）**特意保留**，改名会强制所有用户重新登录，需要新名字的用 `SESSION_COOKIE_NAME` 环境变量自定义
+
+## 2.3.0 · 2026-07-29
+
+### 新增（Matter 桥 · 全类型）
+- **Matter 桥**：互联平台新增 Matter 页签——一座桥可同时接入苹果家庭 / Google Home / Alexa 等全部 Matter 平台（multi-admin）。与 HomeKit 原生桥平行的第三种互联模式：每用户一座桥、独立配对码、各平台操作经同堂权限校验并记入审计，权限收回自动摘除设备
+- 架构：`tongtang-mt` 侧车容器（node20 + matter.js 0.16，host 网络）；控制与配置统一经 api 内部端点（HMAC 派生令牌），权限/审计单点在 python；桥/勾选/权限变化经 matter_rev 对账重建，配对身份保留；映射层独立为 `mapping.mjs` 纯逻辑模块（MAPPING_VERSION 参与桥签名，映射语义变更自动重建防 iPhone 吃旧缓存）
+- **全类型接入（对齐原生 HomeKit 桥）**：灯（开关/调光/色温/彩色 HS）、开关/插座、窗帘（含百叶倾角，Matter 与 HA 开合方向换算）、门锁、空调（制冷/制热/自动/除湿/送风 + 设定点按实体量程钳制）、热水器（30-80°C 量程）、风扇/新风净化器（按名称识别）、水阀、温湿度/照度/气压传感器、人体占用/门窗/水浸、烟雾与燃气/CO 报警（SmokeCoAlarm 特性分装）、空气质量全家桶（PM2.5/PM10/CO₂/CO/NO₂/O₃/VOC 浓度 + AQI 六档分级）、情景/脚本/自动化触发开关（automation 走 trigger 不误碰启用开关）；Matter 无对应类型的降级：加湿器/扫地机/割草机/媒体播放器→动作开关，安防面板/门铃事件不入候选
+- **控制回传双机制**：开关/调光/温控/风扇走 attribute 监听（endpoint.set 回声经 offline 上下文抑制）；锁/窗帘/阀是 iOS 发 Matter 命令，覆盖 behavior 命令方法回传（LockDoor/GoToLiftPercentage/Open）——python 端 `translate_control` 把 Matter 语义契约翻成 call_service 词汇
+- **发行版接线（两份 compose 预置，注释开关二选一）**：方式 A 自动编排——api 设 `MT_IMAGE` + 挂 docker.sock，建桥自动创建 `tongtang-mt` 侧车、删光自动回收、镜像/环境变化自动重建；方式 B 静态侧车——取消 `mt` 服务注释即长驻，api 端零开关（未设 MT_IMAGE 自动识别常驻模式）。发布镜像 `jeesa/tongtang-mt`（esbuild 压缩单文件产物，publish.sh 含压缩校验），健康检查为心跳文件新鲜度（镜像内置）
+- 侧车日志脱敏：matter.js 默认日志级别收敛 warn（未配对桥的 NOTICE 会打印配对码明文），排障用 `MT_LOG_LEVEL=info/debug` 临时放开；dev compose 默认 info
+- 全类型自测：`test-bridge.mjs` 以合成实体覆盖 35 种形态跑真 ServerNode（Conformance 校验 + applyState 冒烟），并修复自测揪出的 5 处：百叶窗 type 特性冲突、门锁反义位图 alwaysSet 位段、彩色灯缺 HueSaturation 特性、占用传感器缺 occupancySensing behavior、空气质量枚举特性门控
+- 配对码由 matter.js 计算回写（MT: 二维码 + 11 位手动码），测试 VID 0xFFF1（开源软件桥无认证实体，添加时"未认证设备"提示属正常，操作手册已说明）
+- 发版前复查（第四轮，12 发现全修，映射版本升至 2）：automation 触发磁贴静息恒灭（跟随"启用态"会造成死点击与语音失效）；温控 deadband 单位修正（0.1°C：25 而非 250）；方式 A 回收侧车会残留旧配对存储 → 桥身份标记（created_at）自动清除防僵尸配对；起桥失败自动重试 + 离线节点周期对账重建（此前 rev 不变即永不重试）；热水器 Off 拨杆接通 turn_on/off（此前是假开关）；Auto 模式双设定点改走 target_temp_low/high（此前 80ms 合并队列互吞必丢一个）；气压按规范 ×10（0.1 kPa 单位）；风扇档位序列 0=Off/Low/Med/High（此前声明 Off/High 却写 Low/Med）；无位置能力窗帘不再强加百分比滑杆（按 supported_features 探测 PositionAware）；attribute 监听真解绑（matter.js Observable.on 无返回值，须 off(listener)）；APP_SECRET 短于 16 位时两端行为不一致 → 侧车明示退出 + api 一次性日志提示；侧车 api 轮询加 10s 超时（docker restart 不处理 unhealthy，卡死曾是永久僵尸）
+
+### 修复（存量代码全量复查 · 首轮轮换，7 处真伤）
+- **涂鸦状态上报任务被 GC 中途回收**：`notify_state` 派生的上报任务只被 asyncio 弱引用，无强引用时可能在完成前被垃圾回收、设备状态推送静默丢失。改为 `_inflight_pushes` 集合强引用至完成（`add_done_callback` 自动摘除）
+- **涂鸦监督器读库瞬时失败触发 MQTT 重连风暴**：`_load_state` 抛异常（`database is locked` 等）时原先拿空集去对账，空 `wanted` 会 cancel 掉全部在线网关任务再重连——表现为周期性涂鸦 MQTT 重连风暴。现捕获异常、保持现有连接、跳过本轮对账、5 秒后重试
+- **巴法监督器同类隐患**：读库瞬时失败同样会拿空集 cancel 全部在线桥再重连，巴法反复多连可致账号异常。加同样的守卫（保持连接、跳过本轮、稍后重试）
+- **场景"首页显示"开关落库失败不回滚**：`toggleSceneHome` 乐观改开关后若偏好 PUT 失败，UI 会停在错误态、与服务器不符（其余设备偏好早有回滚，唯独场景漏了）。现失败回滚乐观态并提示
+- **删除表计缺二次确认**：删除表计按钮直接删库、无 `confirm`，与面板其他删除动作（成员/家庭/分组/实例均有确认）不一致，易误删且下级表计会静默升顶。补二次确认
+- **锁乐观态瞬间误显"已解锁"**：锁走 `{on}` 通道但卡片按 `state==="locked"` 字面判定，上锁瞬间（WS 回状态前）乐观态被写成通用 `on` 会误显"已解锁"。现乐观态直接给锁终态字面值（`locked`/`unlocked`），与 HA 上报一致
+- **Matter 侧车删除实例后 WS 状态源泄漏**：`config.instances` 只驱动"新增/更新"，被移除实例的 WS feed（含 pingTimer/重连定时器）会永远重连一个不存在的 HA、泄漏连接与句柄。`ensureFeed` 循环后加回收对账：不在配置内的 feed 一律 `stop()` + 摘除
+
+### 修复（存量代码深读复查 · 第 2 轮轮换：数据迁移 / 实时推送 / 能耗，8 处真伤）
+- **实体改名会连带清空 Matter 桥的设备勾选**：HA 实体改名后同堂把旧键迁到新键，但迁移子表清单漏了 `matter_devices`——该表对 `devices(entity_id)` 带 `ON DELETE CASCADE`，迁移末尾按旧键删 `devices` 行时会静默级联删掉用户在 Matter 桥里的勾选（HomeKit/米家/涂鸦三表首轮已覆盖，Matter 是新表遗漏）。已补入迁移子表清单
+- **慢/半开客户端会冻结整条事件摄取**：设备状态广播此前对每个前端 WebSocket 串行 `await` 发送，任一半开连接（拔网、息屏后台）阻塞就会卡住其后所有客户端乃至 HA 事件摄取循环。改为并发扇出 + 每帧 5 秒发送超时，慢客户端只拖累自己、超时即剔除
+- **心跳与广播可能并发写同一 WebSocket**：连接级心跳与设备广播是两条协程，可能同时向同一 socket 写帧（Starlette send 非并发安全，会协议错乱报错）。加每 socket 串行发送锁，心跳与广播共享同一锁排队
+- **读实例表瞬时失败触发重连风暴**：实时监听监督器每 30 秒对账「该连哪些 HA 实例」，若这一刻读实例表恰逢 `database is locked` 等瞬时失败，原先会拿到空集、把所有附加实例误判为「已删除」而全部取消重连——表现为周期性重连风暴。现捕获异常、保留既有任务、跳过本轮、下轮再试
+- **权限查询阻塞事件循环**：设备广播前查「哪些成员可见该设备」是同步 SQLite，此前直接在事件循环里执行，高频事件下会周期性卡住整个推送与摄取。改为放线程池（与状态落库一致）
+- **api 与侧车并发初始化会崩库迁移**：api 与 tongtang-hk/mt 侧车启动时都会跑 `init_db` 加列迁移，两边同时 check-then-ALTER 存在竞态——一方刚加完列、另一方紧接着 `ALTER` 抛 `duplicate column` 使启动崩溃。抽 `_add_column` 助手吞掉重复加列（失败方沿用对方写好的最终 schema）
+- **能耗配置表重建会丢燃气/用水实体且无原子性**：`energy_configs` 一处历史 schema 重建用了 `executescript`（自动提交、半途崩溃无法回滚），且重建后的新表遗漏 `gas_entity_ids`/`water_entity_ids`——升级路径上用户配的燃气/水表实体会被清空。改为显式事务（`BEGIN IMMEDIATE`）包裹整个重建、新表补齐两列并带回填兜底；另加残留自愈——历史版本重建中途崩溃留下的 `energy_configs_old` 残表会在下次启动按共有列自动搬回数据并清理
+- **能耗历史与成本按 Wh 表会差 1000 倍**：能耗曲线接口对 HA 统计增量未做单位归一，而汇总口径已按 kWh 换算——传感器原生单位是 Wh/MWh 时历史曲线与成本会相差 1000 倍（kWh 表无影响）。补单位归一（Wh×0.001、MWh×1000），与汇总口径对齐
+- **发版前终审复核（独立代理复读上述 8 处修复的实现）**：抓获并修正 2 处实现缺口——层级模式的总量序列漏传单位归一参数（Wh 总表的总量/成本仍会差 1000×）；重建的原子性依赖了错误前提（sqlite 传统模式下 DDL 自动提交，"事务内"并不成立），已改显式事务。另加固 3 处：读实例表失败的跳过路径补告警日志（原静默空转）、删除表计失败补错误提示、并发加列容错收窄为仅吞「列已存在」（其余数据库故障快速失败交由重启自愈，不再静默留下缺列 schema）
+
+### 修复
+- **涂鸦监督器空配置告警刷屏**：管理员未配置涂鸦 API Key 时，`_load_state` 早退返回值形状与成功路径不一致（第三项少了二元组包装），监督器解包失败每 30 秒刷一条"读取涂鸦网关失败：not enough values to unpack"——生产日志实测抓获，已修
+- **Matter 空调设定点间距回滚**：空调/温控器只写单侧设定点（如 28°C 制热）会撞另一侧旧值的 2.5°C 强制间距校验（AutoMode deadband），matter.js 回滚整笔 set 连室温/模式一起丢——日志巡检真机抓获，现凡写必成对联动保间距（热水器 Heating-only 语义不变），自测样本改为 28.5°C 制热作回归
+
 ## 2.2.5 · 2026-07-28
 
 ### 修复（Zigbee2MQTT 兼容性专项：真机审计 + 全部 4363 台设备定义机器核对）

@@ -31,6 +31,12 @@ services:
       # 方式 A 的 mDNS 通告地址在此设置（自动透传给侧车）：宿主机装有 WireGuard/Tailscale
       # 等虚拟网卡或多网卡时通告可能选错 IP（配对失败/配件"未连接"），填 NAS 局域网 IP
       # HK_ADDRESS: "192.168.1.10"
+      # ── Matter 桥 · 方式 A：自动编排（需同时挂载下方 docker.sock；与方式 B 二选一）──
+      # 取消 MT_IMAGE 注释即开通：成员第一次建 Matter 桥时自动创建 tongtang-mt 侧车
+      # （host 网络广播 _matterc._udp、共享数据卷），桥全部删光自动回收，镜像标签更新自动重建。
+      # 侧车回连同堂的地址默认 http://127.0.0.1:8080——改了访问端口或走反代时设 MT_API。
+      # MT_IMAGE: "jeesa/tongtang-mt:latest"
+      # MT_API: "http://127.0.0.1:8080"
       # 数据目录属主自动修正后以此身份运行（默认 10001）；
       # 想在宿主机上直接读写数据文件，改成你的用户 id（id -u / id -g）
       # PUID: "1000"
@@ -56,6 +62,9 @@ services:
   # HOMEKIT_NATIVE，见下）后 `docker compose up -d`，侧车长驻、不随桥增删回收。
   # 注意：方式 B 需要同时在上方 api 的 environment 中加一行：
   #   HOMEKIT_NATIVE: "1"
+  # ⚠ 且 api 与侧车必须共用同一个「非空、≥16 位」的 APP_SECRET：留空会让每个容器各自
+  #   生成一次性随机密钥、内部令牌对不上，侧车无限「配置拉取失败 403」（mt 侧车更会直接
+  #   退出→容器反复重启）。务必先 openssl rand -hex 32 生成一个值，三处填成同一个。
   # 原生桥能力（两种方式相同）：同一物理设备整机接入家庭 App——PDU 一块磁贴
   # 展开各口、温湿度电量合一、多灯合并、电视遥控、门铃通知、情景/脚本按钮，
   # 且家庭 App 里的操作经同堂权限校验并记入审计。
@@ -67,9 +76,13 @@ services:
   #   network_mode: host
   #   environment:
   #     DATA_DIR: /data
-  #     APP_SECRET: ""            # 与 api 的 APP_SECRET 保持一致
+  #     APP_SECRET: ""            # 必填！与 api 设为同一个非空 ≥16 位值（留空→各自随机→403，见上）
   #     TZ: "Asia/Shanghai"
   #     HK_PORT_BASE: "52100"     # HAP 服务端口起点（每座桥占一个端口）
+  #     # 若在上方 api 设了 PUID/PGID（与侧车共用同一数据卷），这里也要设成相同值，
+  #     # 否则两容器各自把 /data 属主 chown 成自己的 uid、互相夺权导致读写失败：
+  #     # PUID: "1000"
+  #     # PGID: "1000"
   #     # 宿主机装了 WireGuard/Tailscale 等虚拟网卡或多网卡时，mDNS 可能通告错误 IP
   #     # （表现：配对最后一步失败 / 已添加的配件一直"未连接"），此时填 NAS 局域网 IP：
   #     # HK_ADDRESS: "192.168.1.10"
@@ -80,6 +93,28 @@ services:
   #     test: ["CMD", "python", "-c", "import os,sys,time; p=os.path.join(os.environ.get('DATA_DIR','/data'),'homekit','.heartbeat'); sys.exit(0 if os.path.exists(p) and time.time()-os.path.getmtime(p)<60 else 1)"]
   #     interval: 30s
   #     start_period: 20s
+
+  # ── Matter 桥 · 方式 B：compose 静态创建侧车（与方式 A 二选一）──
+  # 一座桥可同时配对 苹果家庭 / Google Home / Alexa（Matter multi-admin），iPhone
+  # 扫码直加，无需 HomePod 也无需 HA 的 Matter Server。api 端无需任何开关：
+  # 未设置 MT_IMAGE 时同堂自动识别为常驻侧车模式。
+  # host 网络为 mDNS/UDP 广播硬需求：NAS/Linux 可用，Docker Desktop 不支持。
+  # mt:
+  #   image: jeesa/tongtang-mt:latest
+  #   container_name: tongtang-mt
+  #   restart: unless-stopped
+  #   network_mode: host
+  #   environment:
+  #     DATA_DIR: /data
+  #     APP_SECRET: ""                    # 必填！与 api 设为同一个非空 ≥16 位值（留空→各自随机→侧车退出重启，见上）
+  #     MT_API: "http://127.0.0.1:8080"   # 回连同堂 web 入口；改端口/反代时同步改
+  #     TZ: "Asia/Shanghai"
+  #     # 若在上方 api 设了 PUID/PGID（与侧车共用同一数据卷），这里也要设成相同值：
+  #     # PUID: "1000"
+  #     # PGID: "1000"
+  #   volumes:
+  #     - tongtang_data:/data             # 必须与 api 共用同一数据卷
+  #   # 健康检查镜像自带（守护进程心跳文件新鲜度），无需另写
 
 networks:
   default:
