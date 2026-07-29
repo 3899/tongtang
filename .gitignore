@@ -1,2 +1,6 @@
 .DS_Store
 Thumbs.db
+# npm 误入防护（根 .npmrc 的 cache 曾是相对路径，在此目录跑 npm 会就地生成）
+.npm-cache/
+node_modules/
+*.log
