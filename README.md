@@ -32,14 +32,14 @@ curl -O https://raw.githubusercontent.com/<你的用户名>/tongtang/main/docker
 docker compose up -d
 ```
 
-**可选 · 原生 HomeKit 桥（设备整机进家庭 App，NAS/Linux 部署）**
+**HomeKit 桥 · 原生侧车（设备整机进家庭 App，NAS/Linux 部署）**
 
 两份 compose 文件里都预置了两种开通方式（注释开关，二选一）：
 
 - **方式 A · 自动编排**：取消 `docker.sock` 挂载行的注释——成员第一次建桥时同堂自动创建 `tongtang-hk` 侧车容器（host 网络做 mDNS 广播、复用镜像与数据卷），桥全部删除自动回收，镜像升级后自动重建，全程零维护
-- **方式 B · 静态侧车**：不愿挂 docker.sock 的用户，取消 `hk` 服务整段注释 + api 环境变量 `HOMEKIT_NATIVE: "1"`，由 compose 直接创建长驻侧车
+- **方式 B · 静态侧车**：不愿挂 docker.sock 的用户，取消 `hk` 服务整段注释，由 compose 直接创建长驻侧车（api 端无需任何开关，未挂 docker.sock 时自动识别）
 
-> **安全提示**：方式 A 挂载 docker.sock 等同于把宿主机管理权限授予容器，请自行评估信任边界；可经 [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy) 转发并只放行 containers 相关接口收紧，或直接选方式 B（完全不碰 docker.sock）。都不启用则维持默认的 HA 桥模式（功能完整，只是按实体暴露配件）。Docker Desktop（Windows/macOS）不支持 host 网络，请使用默认模式。
+> **安全提示**：方式 A 挂载 docker.sock 等同于把宿主机管理权限授予容器，请自行评估信任边界；可经 [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy) 转发并只放行 containers 相关接口收紧，或直接选方式 B（完全不碰 docker.sock）。HomeKit/Matter 桥接需要 host 网络（NAS/Linux Docker）；Docker Desktop（Windows/macOS）不支持 host 网络，无法使用 HomeKit/Matter 桥接。
 
 > **配对排障**：宿主机装有 WireGuard/Tailscale 等虚拟网卡或多网卡时，mDNS 可能通告错误 IP（表现为配对最后一步失败、已添加配件一直"未连接"）——设置 `HK_ADDRESS` 为 NAS 局域网 IP 即可（方式 A 设在 api 环境变量并自动透传，方式 B 设在 hk 服务，见 compose 注释）。桥端口被其他进程占用时会自动迁移到空闲端口，配对不受影响。iPhone 与服务器需同一网段（mDNS 不跨网段，跨段需路由器开 mDNS 反射）。
 
@@ -56,6 +56,11 @@ docker compose up -d
 
 > **Matter 注意事项**：配对排障同 HomeKit（mDNS 不跨网段；虚拟网卡场景见上）。开源软件桥使用
 > Matter 测试厂商码（0xFFF1），苹果家庭添加时会提示「未经认证的配件」，属预期行为，点继续即可。
+> 同一宿主机部署多套同堂实例时，请为每套实例设置 `HK_SIDECAR_NAME` / `MT_SIDECAR_NAME`
+> 错开侧车容器名（默认 `tongtang-hk`/`tongtang-mt` 为全局唯一，多实例共用会互相争抢）。
+> 各生态对 Matter 空调的支持成熟度不同（社区实测）：苹果家庭/Google Home 支持温度与模式，
+> **Alexa 目前对 Matter 空调仅支持开关**（不支持调温，系 Alexa 侧限制）；手机上的状态显示可能滞后
+> （Google Home 尤甚，可达一两分钟）——指令实际即时生效，仅显示延迟，以设备实际动作为准。
 
 打开 `http://服务器IP:8080`，按首次配置向导填入 HA 地址与长期访问令牌即可。
 详细部署、升级、备份、HTTPS 与故障排查见 [docs/deployment.md](docs/deployment.md)。
@@ -115,9 +120,7 @@ docker compose up -d
 ### 互联平台（生态桥接）
 - **小爱同学 · 巴法云**：各成员绑定自己的巴法云私钥，勾选授权内的设备同步进米家，小爱语音控制；权限收回自动撤出
 - **涂鸦智能 · 虚拟网关**：管理员配一次 API Key，各成员扫码绑定专属网关，设备经涂鸦 App 确认后成为家庭顶层设备（完整产品面板、按房间自动归位），覆盖灯/开关/风扇/新风/窗帘/空调/热水器/加湿器/扫地机/温湿度/门磁，可接天猫精灵、小度等语音生态
-- **HomeKit · 专属桥（双模式）**：每位成员自建多座桥（按房间/类型命名组织），iPhone 家庭 App 扫码配对、Siri 直控；勾选与权限变化实时同步进家庭 App 且不破坏配对，权限收回自动消失
-  - **HA 桥模式（默认，零依赖）**：托管 HA 内置 homekit 集成，按实体暴露配件，全平台可用
-  - **原生桥模式（可选叠加，NAS/Linux 推荐）**：同堂自建 HAP 桥——**同一物理设备整机一块磁贴**（PDU 插排展开各口独立控制、温湿度电量合一、双模灯合并、新风→净化器卡片、热水器可接入），电视信源/遥控/音量、门铃与无线按钮原生通知、情景/脚本/自动化挂为一按即触发的开关，且家庭 App 里的每次操作经同堂权限校验并记入审计
+- **HomeKit · 原生专属桥（侧车）**：每位成员自建多座桥（按房间/类型命名组织），iPhone 家庭 App 扫码配对、Siri 直控——**同一物理设备整机一块磁贴**（PDU 插排展开各口独立控制、温湿度电量合一、双模灯合并、新风→净化器卡片、热水器可接入），电视信源/遥控/音量、门铃与无线按钮原生通知、情景/脚本/自动化挂为一按即触发的开关；勾选与权限变化实时同步进家庭 App 且不破坏配对，权限收回自动消失，家庭 App 里的每次操作经同堂权限校验并记入审计（需 host 网络：NAS/Linux Docker 可用，Docker Desktop 不支持）
 - **Matter · 专属桥（multi-admin，可选叠加）**：一座桥同时共享给**苹果家庭 / Google Home / Alexa**，iPhone 扫码直加（无需 HomePod 桥接、无需 HA Matter Server）；灯（开关/调光/色温/彩色）、插座、窗帘（含百叶倾角）、门锁、空调、热水器、风扇/净化器、水阀、全系传感器（温湿度/照度/气压/门磁/人体/水浸）、空气质量（PM2.5/PM10/CO₂/CO/NO₂/O₃/VOC/AQI 分级）、烟雾/燃气报警、情景触发全类型接入，控制经同堂权限校验并记入审计，权限收回实时消失
 - 桥接均内置分步操作手册；小爱/涂鸦走 MQTT 长连接断线自愈、远端操作记入审计，HomeKit/Matter 为局域网直连（响应快、断网可用）
 
@@ -164,7 +167,6 @@ light · switch · climate · fan · cover · sensor · binary_sensor · camera 
 
 ## 已知限制
 
-- 「谁在家」的 person 实体目前仅对接默认 HA 实例（情景/自动化已按家庭所属实例隔离）
 - 自动化引擎复用 HA 原生（Web 不自建执行引擎，跨 HA 联动在规划中）
 - 能源历史依赖 HA 长期统计：实体需带 `state_class` 属性（详见部署文档故障排查）
 

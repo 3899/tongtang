@@ -1,5 +1,51 @@
 # 更新日志
 
+## 2.4.0 · 2026-07-31
+
+### 破坏性变更 · HomeKit「HA 桥模式」移除（原生侧车桥成为唯一模式）
+- 托管 HA 内置 homekit 集成的旧模式整体退役——原生桥在整机磁贴、门铃/按钮通知、操作审计、情景挂载上全面超越，双模式的维护成本不再值得。**升级说明**：升级后旧 HA 桥模式的桥记录在同堂侧自动清除（数据库迁移）；HA 里遗留的 homekit 集成条目同堂不会触碰，请到 HA「设置 → 设备与服务 → HomeKit 桥」手动删除，iPhone 家庭 App 中的旧配件移除后按原生桥重新配对
+- `HOMEKIT_NATIVE` 环境变量不再有意义，设任何值均被忽略（显式设 '0' 启动日志会提示）；方式 A（挂 docker.sock 自动编排侧车）/方式 B（compose 静态 hk 侧车）不变
+- Docker Desktop（Windows/macOS）不支持 host 网络，无法使用 HomeKit/Matter 桥接（原 HA 桥兼容退路随模式移除）
+
+### 新增（HomeKit 原生桥，映射版本 8——升级后所有桥自动重建一次，配对无损）
+- **多键遥控拆分**：`1_single` 键号词表的多键遥控/无线开关按键各出一个按钮服务（ServiceLabelIndex 标号、"按键 N"命名），家庭 App 里每个键可独立配自动化；识别不出键号结构的实体维持单按钮
+- **安防布防码**：需要密码的 HA 安防面板（`code_arm_required`）此前布防/撤防必失败——设备浮窗设置区新增"布防码"（本人可见），HomeKit 布防指令自动携码；审计与日志全程掩码
+- **HA 原生情景进桥**（管理员）：情景/脚本/自动化挂桥候选此前只含同堂创建的条目，现在管理员可勾选 HA 侧原生情景
+- **风扇自动档**：预设含 auto/smart 的风扇追加 TargetFanState（家庭 App"自动/手动"切换）
+- **土壤湿度**：`soil_moisture` 传感器（Z2M 花盆检测仪等）接入为湿度配件
+
+### 新增（Matter 桥 · 四种新形态，映射版本 4）
+- **门铃/无线按钮（event 实体 → GenericSwitch）**：单击/双击/长按按 Matter 规范事件序列发射（双击为 MSM 六段序列），词表语义对齐原生 HomeKit 桥（short_release 为单击主信号、release/move/区域事件等忽略清单防幻影触发）；多键遥控（`1_single` 键号词表）v1 先按单按钮接入（去键号前缀按后缀匹配），掉线恢复重落基线不发陈旧按键。候选面板 event 实体按 device_class 标注"门铃/按钮"
+- **扫地机完整卡片（vacuum → RVC）**：告别动作开关降级——RvcRunMode（待机/清扫）+ RVC 专用 OperationalState（清扫中/暂停/回充 SeekingCharger/已入坞 Docked/故障含 operationalError），有 `fan_speed_list` 的实体追加 RvcCleanMode 吸力档；控制走 Matter 命令回传（changeToMode→start/return_to_base、pause/resume、goHome），HA 侧翻译为 vacuum 服务
+- **PDU/多路面板 composed 整机**：同一物理设备（HA device registry）的 ≥2 个开关/灯合并为"父端点（桥接节点+设备名）+子端点（FixedLabel 口名）"结构，iOS 期望显示为一个配件磁贴展开多口；单开关+传感器的设备不编组（温湿度计不会变复合配件）。既有散装端点升级为子端点会重建（id 变化），已配对家庭 App 自动刷新
+- **功率/电量进苹果家庭（iOS 27 能源就绪）**：插座/端口挂 ElectricalPowerMeasurement（毫瓦，±1% 精度声明）——数据源两类：实体自带 `current_power_w/power` 属性（涂鸦等），或 composed 组内 `device_class=power` 传感器按端口号自动配对（数量相等一一配对、单只挂整机父端点）；组内 `device_class=energy` 传感器同法喂 ElectricalEnergyMeasurement 累计电量（毫瓦时）。power/energy 传感器进入 Matter 候选列表（标注"电量计量"，与同设备开关勾进同一桥即自动配对）。真机验证待 iOS 27 能源页签（2026 秋），Conformance 与换算已由自测覆盖
+
+### 新增（多实例）
+- **「谁在家」支持附加 HA 实例**：person 绑定候选覆盖全部启用实例（带"·实例名"后缀区分），状态读取按实体键自动路由；单实例失联沿用其上一轮快照，不拖垮其他成员的在家状态
+
+### 修复
+- **Matter 桥附加实例状态冻结**（自 Matter 上线潜伏）：侧车状态订阅用自造键格式（`N|entity`），与配置下发的 `haiN:entity` 永不相等——附加 HA 实例上的 Matter 桥端点状态永不回流（默认实例不受影响）。统一键口径修复
+- **空调自动档显示"自动 · 0%"**：Matter FanControl 自动档时 percentSetting 按规范置 null，控制器不再并列显示 0%
+- **控制审计脱敏**：web 端与 Matter 中转的设备控制审计载荷中，`code` 字段（布防码等）一律掩码存储
+
+### 内部
+- 数据库迁移引入版本门控（PRAGMA user_version）：启动快路径跳过全部存量迁移，新增迁移按版本块管理；homekit_bridges 老库重建改为门控事务内逐条执行 + 崩溃残留自愈（对齐 energy_configs 模式）
+- 登录限速器改单调时钟（NTP 回拨免疫）+ 异常流量下的内存清扫；PBKDF2 迭代数常量化（哈希/验证强制同源）
+
+## 2.3.4 · 2026-07-30
+
+### 修复
+- **同一主机多套实例的侧车名冲突**：HomeKit/Matter 自动编排的侧车容器名此前写死为 `tongtang-hk`/`tongtang-mt`（docker 容器名全局唯一）——同一宿主机跑两套同堂时，两边的编排器会互相劫持或回收对方的侧车。新增 `HK_SIDECAR_NAME` / `MT_SIDECAR_NAME` 环境变量为每套实例指定专属侧车名；默认值不变，单实例部署零影响
+
+## 2.3.3 · 2026-07-30
+
+### 新增
+- **Matter 空调风速控制**：恒温器端点追加 FanControl 集群（有 `fan_modes` 的空调才挂，纯温控器不受扰）——苹果家庭/Google Home 渲染为百分比风扇、HA 控制器显示档位；档位在实体风档列表内均匀分布，支持百分比与档位枚举双通道回传（`set_fan_mode`），自动档映射 Matter Auto。映射版本升至 3，已配对桥自动重建刷新。源自与独立实现 bc7215_ac_matter 的交叉核对（该核对同时验证了双设定点/间距/档位分段等既有实现，零缺陷）
+
+### 修复
+- **Matter 桥端口冲突自愈**：桥端口被外部进程占用（如同一主机上另一套同堂实例的侧车——两套库各自从 5540 分配，分配器看不见宿主机占用）时，此前只会每 2 秒盲目重试同一端口；现在侧车在 bind 失败时自动探测下一个空闲 UDP 端口、回写桥配置并重建——mDNS 通告新端口，已配对的控制器自动跟随，配对无损（对齐 HomeKit 桥 2.2.4 的同款自愈）
+- **互联平台二维码全量平铺**：HomeKit 与 Matter 面板此前把所有未配对桥的二维码堆在同一页——多桥用户容易扫错桥。现在只显示当前选中桥的二维码，切换顶部桥标签即切换二维码（用户实测反馈）
+
 ## 2.3.2 · 2026-07-29
 
 ### 变更（旧名清理收尾）
