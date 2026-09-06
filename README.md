@@ -6,13 +6,15 @@
 **本仓库为发行仓库**：提供 Docker 镜像部署文件与完整文档，不包含源代码。
 本项目不开源，保留所有权利，详见 [LICENSE](LICENSE)。问题反馈与需求建议请提 [Issues](../../issues)。
 
-## 当前版本：2.4.5
+## 2.4.5 更新说明（镜像发布中）
+
+本次文档已更新，Docker Hub 镜像尚未发布完成。请先继续使用现有镜像；确认 [发布页面](https://github.com/ZHonry/tongtang/releases) 和 Docker Hub 的 `2.4.5` 标签均已就绪后再升级。
 
 本次更新修复情景/自动化授权绕过、旧实时会话失效及静态文件路径边界问题，并修复家庭切换后的能源数据、附加 HA 实例的自动化动作、情景状态捕获和月底日期导航。
 
 普通成员的高级规则必须明确指定已授权设备；模板、脚本调用和区域等批量目标由管理员管理。详细变更与升级注意事项见 [更新日志](CHANGELOG.md#245--2026-09-06)。
 
-发布镜像：`jeesa/tongtang:2.4.5`、`jeesa/tongtang-web:2.4.5`、`jeesa/tongtang-api:2.4.5`、`jeesa/tongtang-mt:2.4.5`，支持 `linux/amd64` 和 `linux/arm64`。HomeKit 原生侧车复用 API 镜像。
+目标镜像：`jeesa/tongtang:2.4.5`、`jeesa/tongtang-web:2.4.5`、`jeesa/tongtang-api:2.4.5`、`jeesa/tongtang-mt:2.4.5`，发布架构为 `linux/amd64` 和 `linux/arm64`。HomeKit 原生侧车复用 API 镜像。
 
 已有部署保留数据卷及 APP_SECRET，使用原 compose 配置执行 `docker compose pull`、`docker compose up -d`；一体化部署为两条命令均加上 `-f docker-compose.allinone.yml`。静态侧车应一并更新，更新前建议备份数据卷。
 
